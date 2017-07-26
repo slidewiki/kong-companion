@@ -1,11 +1,5 @@
-{{ range $hosts, $containers }}
-
-{{ if trim $hosts }}
-
-{{ range $container := $containers }}
-{{ $container }}
-{{ end }}
-
-{{ end }}
-
-{{ end }}
+[
+{{range $key, $value := .}}
+{{json $value}},
+{{end}}
+]

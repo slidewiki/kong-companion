@@ -16,7 +16,6 @@ RUN echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/so
 
 RUN wget https://github.com/jwilder/docker-gen/releases/download/0.7.3/docker-gen-linux-amd64-0.7.3.tar.gz && tar xvzf docker-gen-linux-amd64-0.7.3.tar.gz && rm -f docker-gen-linux-amd64-0.7.3.tar.gz && cp docker-gen /usr/bin/docker-gen
 ENV DOCKER_HOST=unix:///tmp/docker.sock
-ADD container.tpl
 
 # ----------------------- #
 #   Installation NodeJS   #
@@ -25,8 +24,6 @@ ADD container.tpl
 ADD ./application/package.json ./
 RUN npm install --production
 
-ADD ./application/ ./
-
 # ----------- #
 #   Cleanup   #
 # ----------- #
@@ -34,8 +31,13 @@ ADD ./application/ ./
 RUN apt-get autoremove -y && apt-get -y clean && \
 		rm -rf /var/lib/apt/lists/*
 
+# Add files
+ADD ./application/ ./
+ADD container.tpl container.tpl
+
 # -------- #
 #   Run!   #
 # -------- #
 
-CMD docker-gen -watch -interval 360 container.tpl container.json -notify node application/createAPIs.js && certbot createcert 
+ENTRYPOINT docker-gen -watch -interval 360 container.tpl container.json
+CMD -notify "node application/createAPIs.js && certbot certonly"
