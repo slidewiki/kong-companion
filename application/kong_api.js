@@ -340,5 +340,47 @@ module.exports = {
       request(options, callback);
     });
     return promise;
+  },
+
+  listAPIs: () => {
+    let promise = new Promise((resolve, reject) => {
+      const options = {
+        url: KONG_ADMIN + 'apis/',
+        method: 'GET',
+        json: true
+      };
+
+      function callback(error, response, body) {
+        if (!error) {
+          resolve(body);
+        } else {
+          reject(error);
+        }
+      }
+
+      request(options, callback);
+    });
+    return promise;
+  },
+
+  listCertificates: () => {
+    let promise = new Promise((resolve, reject) => {
+      const options = {
+        url: KONG_ADMIN + 'certificates/',
+        method: 'GET',
+        json: true
+      };
+
+      function callback(error, response, body) {
+        if (!error) {
+          resolve(body);
+        } else {
+          reject(error);
+        }
+      }
+
+      request(options, callback);
+    });
+    return promise;
   }
 };

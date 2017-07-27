@@ -32,12 +32,13 @@ RUN apt-get autoremove -y && apt-get -y clean && \
 		rm -rf /var/lib/apt/lists/*
 
 # Add files
-ADD ./application/ ./
+RUN touch node.log && touch certbot.log
 ADD container.tpl container.tpl
+ADD handleContainers.sh handleContainers.sh
+ADD ./application/ ./
 
 # -------- #
 #   Run!   #
 # -------- #
 
-ENTRYPOINT docker-gen -watch -interval 360 container.tpl container.json
-CMD -notify "node application/createAPIs.js && certbot certonly"
+ENTRYPOINT docker-gen -watch -interval 360 container.tpl container.json -notify "/nodeApp/handleContainers.sh"
