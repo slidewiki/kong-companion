@@ -215,7 +215,7 @@ module.exports = {
         if (!error && response.statusCode === 201) {
           let api = body;
           if (api.name !== hostname)
-            reject('created Application for wrong consumer');
+            reject('created Application for wrong hostname');
           resolve(api);
         } else {
           reject(error);
