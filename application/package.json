@@ -1,7 +1,7 @@
 {
   "name": "kong-campanion",
   "version": "1.0.0",
-  "description": "",
+  "description": "This container contains docker-gen, certbot and node which will interact with Kong and all running containers in order to use and add a lets encrypt certificates with automatically creation and renewal",
   "repository": {
     "type": "git",
     "url": "https://github.com/slidewiki/kong-companion"
@@ -13,7 +13,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
-    "node": ">=6.9"
+    "node": ">=8.10"
   },
   "author": "Kurt Junghanns",
   "license": "MPL-2.0",

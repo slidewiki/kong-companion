@@ -73,10 +73,12 @@ return kongAPI.listAPIs()
       .then(values => {
         //---------------------------------------------------------
 
-        return kongAPI.listCertificates((certificates) => {
+        return kongAPI.listCertificates((data) => {
           let domainsWhichNeedACertificate = ();
           //not valid certificates have to be deleted
           //diff between existing certificate hosts and container domains is the set for which new certificates have to be created
+
+          let certificates = data.data;
           
         });
 

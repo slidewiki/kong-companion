@@ -203,14 +203,14 @@ module.exports = {
         json: true,
         body: {
           name: hostname,
-          request_host: requestHost,
+          hosts: requestHost,
           upstream_url: upstreamURL
         }
       };
 
       function callback(error, response, body) {
-        //console.log('Kong: addUpstreamHost: ', options);
-        //console.log('Kong: addUpstreamHost: got ', error, response.statusCode, body);
+        console.log('Kong: addUpstreamHost: ', options);
+        console.log('Kong: addUpstreamHost: got ', error, response.statusCode, body);
 
         if (!error && response.statusCode === 201) {
           let api = body;
