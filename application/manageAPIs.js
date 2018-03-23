@@ -5,14 +5,15 @@ console.log('Starting updating APIs of Kong');
 const kongAPI = require('./kong_api.js'),
   fs = require('fs'),
   containers = JSON.parse(fs.readFileSync('./container.json', 'utf8'));
+const EMAIL = 'kjunghanns@informatik.uni-leipzig.de'; //TODO read setted email from container
 
-console.log('Read '+containers.length+' container');
+console.log('Read '+containers.length+' container from docker-gen file');
 
 /*
 This code prepares Kong and a config file for certbot.
 Detailed:
  * Update APIs of Kong (while reading running containers - description stored in container.json)
- * Detect for which domain a new certificate have to be created and store the summary in a config file
+ * Detect for which domain a new certificate have to be created and start certbot
 */
 
 let domains = containers.reduce((s, container) => {
@@ -71,15 +72,57 @@ return kongAPI.listAPIs()
 
     Promise.all(promises)
       .then(values => {
+        console.log('Changed', promises.length, 'APIs!');
         //---------------------------------------------------------
 
         return kongAPI.listCertificates((data) => {
-          let domainsWhichNeedACertificate = ();
           //not valid certificates have to be deleted
           //diff between existing certificate hosts and container domains is the set for which new certificates have to be created
 
           let certificates = data.data;
-          
+          let domainsWithoutCertificate = [];
+          certificatePromises = array();
+          certificates.forEach((certificate) => {
+            if (!domains.has(certificate.snis[0]))
+              certificatePromises.push(kongAPI.deleteCertificate(certificate.id));
+          });
+          domains.forEach((domain) => {
+            if (!certificates.find((certificate) => certificate.snis[0] === domain)) {
+              domainsWithoutCertificate.push(domain);
+            }
+          });
+
+          Promise.all(certificatePromises)
+            .then((values) => {
+              console.log('Removed', certificatePromises.length, 'Certificates!');
+              // build command string
+              let cmd = 'certbot certonly --agree-tos --standalone --preferred-challenges http -n -m ' + EMAIL + ' --expand -d ' + domainsWithoutCertificate.join(',');
+
+              const certbot_log = require('child_process').execSync(cmd);
+              //TODO check log
+
+              let lastPromises = array();
+              const path = '/etc/letsencrypt/live';
+              domainsWithoutCertificate.forEach((domain) => {
+                lastPromises.push(kongAPI.addCertificate(domain, path));
+              });
+
+              Promise.all(lastPromises)
+                .then((values) => {
+                  console.log('Success!');
+                  console.log('Added', lastPromises.length, 'Certificates!');
+                  //TODO get certificates from Kong and compare
+                  process.exit(0);
+                })
+                .catch((reason) => {
+                  console.log('Failed adding certificates: ', reason);
+                  process.exit(0);
+                });
+            })
+            .catch((reason) => {
+              console.log('Failed deleting certificates: ', reason);
+              process.exit(0);
+            });
         });
 
       }).catch(reason => {

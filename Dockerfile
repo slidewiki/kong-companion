@@ -23,6 +23,7 @@ RUN  echo "deb http://ppa.launchpad.net/certbot/certbot/ubuntu xenial main" > /e
     && apt-get update \
     && apt-get -y --no-install-recommends install nano certbot
 RUN certbot --version
+EXPOSE 80 443
 
 # --------------------------- #
 #   Installation docker-gen   #

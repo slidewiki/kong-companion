@@ -6,7 +6,8 @@ It has functions to create a costumer and a application and also to retrieve a a
 'use strict';
 
 const request = require('request'),
-  URLs = require('./configuration.js').URLS;
+  URLs = require('./configuration.js').URLS,
+  fs = require('fs');
 
 const KONG_ADMIN = (URLs.KONG_ADMIN === '') ? 'http://localhost:8001/' : URLs.KONG_ADMIN,
   KONG_OAUTH2 = (URLs.SELF === '') ? 'https://oauth2test.localhost' : URLs.SELF;
@@ -374,6 +375,57 @@ module.exports = {
       function callback(error, response, body) {
         if (!error) {
           resolve(body);
+        } else {
+          reject(error);
+        }
+      }
+
+      request(options, callback);
+    });
+    return promise;
+  },
+
+  //returns nothing
+  deleteCertificate: (id) => {
+    let promise = new Promise((resolve, reject) => {
+      const options = {
+        url: KONG_ADMIN + 'certificates/' + id,
+        method: 'DELETE'
+      };
+
+      function callback(error, response, body) {
+
+        if (!error && response.statusCode === 204) {
+          resolve(response);
+        } else {
+          reject(error);
+        }
+      }
+
+      request(options, callback);
+    });
+    return promise;
+  },
+
+  addCertificate: (domain, path) => {
+    let promise = new Promise((resolve, reject) => {
+      const options = {
+        url: KONG_ADMIN + 'apis/',
+        method: 'POST',
+        json: true,
+        body: {
+          snis: [domain],
+          cert: fs.readFileSync(path+'/'+domain+'/fullchain.pem'),
+          key: fs.readFileSync(path+'/'+domain+'/privkey.pem')
+        }
+      };
+
+      function callback(error, response, body) {
+        // console.log('Kong: addCertificate: ', options);
+        console.log('Kong: addCertificate: got ', error, response.statusCode, body);
+
+        if (!error && response.statusCode === 201) {
+          resolve(api);
         } else {
           reject(error);
         }
