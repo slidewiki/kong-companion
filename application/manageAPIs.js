@@ -49,7 +49,7 @@ return kongAPI.listAPIs()
     apis.data.forEach((api) => {
       let found = false;
       containers.forEach((container) => {
-        if (container.State && container.State.Running && container.Env && container.Env.LETSENCRYPT_HOST === api.hosts[0]) {
+        if (container.State && container.State.Running && container.Env && && api.hosts && container.Env.LETSENCRYPT_HOST === api.hosts[0]) {
           found = true;
           return;
         }
@@ -64,9 +64,9 @@ return kongAPI.listAPIs()
 
     //---------------------------------------------------------
 
-    let promises = array();
+    let promises = [];
     obsoleteAPIs.forEach((api) => {
-      promises.push(kongAPI.deleteUpstreamHost(api.id));
+      // promises.push(kongAPI.deleteUpstreamHost(api.id));//TODO just remove them if they are lets encrypt apis
     });
     newAPIs.forEach((container) => {
       promises.push(kongAPI.addUpstreamHost(container.Env.LETSENCRYPT_HOST, container.Env.LETSENCRYPT_HOST, 'http://'+container.IP));
@@ -77,13 +77,14 @@ return kongAPI.listAPIs()
         console.log('Changed', promises.length, 'APIs!');
         //---------------------------------------------------------
 
-        return kongAPI.listCertificates((data) => {
+        return kongAPI.listCertificates()
+        .then((data) => {//Stopps here
           //not valid certificates have to be deleted
           //diff between existing certificate hosts and container domains is the set for which new certificates have to be created
 
           let certificates = data.data;
           let domainsWithoutCertificate = [];
-          certificatePromises = array();
+          certificatePromises = [];
           certificatePromises.push(() => {return;});
           certificates.forEach((certificate) => {
             if (!domains.has(certificate.snis[0]))
@@ -106,7 +107,7 @@ return kongAPI.listAPIs()
               //TODO check log
               console.log('The command returned:', certbot_log);
 
-              let lastPromises = array();
+              let lastPromises = [];
               const path = '/etc/letsencrypt/live';
               domainsWithoutCertificate.forEach((domain) => {
                 lastPromises.push(kongAPI.addCertificate(domain, path));

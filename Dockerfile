@@ -50,6 +50,7 @@ RUN apt-get autoremove -y && apt-get -y clean && \
 RUN touch node.log && touch certbot.log
 ADD container.tpl container.tpl
 ADD handleContainers.sh handleContainers.sh
+RUN chmod 777 handleContainers.sh && chmod 777 node.log
 ADD ./application/ ./
 
 # -------- #
