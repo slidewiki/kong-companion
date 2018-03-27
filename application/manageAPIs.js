@@ -49,7 +49,7 @@ return kongAPI.listAPIs()
     apis.data.forEach((api) => {
       let found = false;
       containers.forEach((container) => {
-        if (container.State && container.State.Running && container.Env && && api.hosts && container.Env.LETSENCRYPT_HOST === api.hosts[0]) {
+        if (container.State && container.State.Running && container.Env && api.hosts && container.Env.LETSENCRYPT_HOST === api.hosts[0]) {
           found = true;
           return;
         }

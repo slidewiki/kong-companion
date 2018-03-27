@@ -412,7 +412,7 @@ module.exports = {
   addCertificate: (domain, path) => {
     let promise = new Promise((resolve, reject) => {
       const options = {
-        url: KONG_ADMIN + 'apis/',
+        url: KONG_ADMIN + 'certificates/',
         method: 'POST',
         json: true,
         body: {
