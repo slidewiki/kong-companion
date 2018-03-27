@@ -9,7 +9,7 @@ WORKDIR /nodeApp
 # ------------------------ #
 
 RUN apt-get update && apt-get -y --no-install-recommends install wget xz-utils && mkdir /usr/local/node
-RUN wget --no-check-certificate https://nodejs.org/dist/v8.10.0/node-v8.10.0-linux-x64.tar.xz && tar -xf node-v8.10.0-linux-x64.tar.xz && rm -f node-v8.10.0-linux-x64.tar.xz && cp -r node-v8.10.0-linux-x64/* /usr/local/node/
+RUN wget --no-check-certificate https://nodejs.org/dist/v8.10.0/node-v8.10.0-linux-x64.tar.xz && tar -xf node-v8.10.0-linux-x64.tar.xz && rm -f node-v8.10.0-linux-x64.tar.xz && cp -r node-v8.10.0-linux-x64/* /usr/local/node/ && rm -rf node-v8.10.0-linux-x64
 ENV PATH="/usr/local/node/bin:${PATH}"
 RUN node -v
 RUN npm -v

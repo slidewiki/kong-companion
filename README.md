@@ -8,7 +8,7 @@ It uses certbot in the same way as https://github.com/luispabon/kong-certbot-age
 ## Commands
 Start test container:
 ```
-docker build -t kong-companion .  && docker run -it --name kong-companion --rm --link kong_kong_1 -e KONG_ADMIN_URL=http://kong_kong_1:8001/ -v /var/run/docker.sock:/tmp/docker.sock:ro kong-companion
+docker build -t kong-companion .  && docker run -d --name kong-companion --rm --link kong -e KONG_ADMIN_URL=http://kong:8001/ -v /var/run/docker.sock:/tmp/docker.sock:ro kong-companion
 ```
 
 Create certbot API:
