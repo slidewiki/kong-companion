@@ -237,8 +237,8 @@ module.exports = {
       };
 
       function callback(error, response, body) {
-        //console.log('Kong: deleteUpstreamHost: ', options);
-        //console.log('Kong: deleteUpstreamHost: got ', error, response.statusCode, body);
+        console.log('Kong: deleteUpstreamHost: ', options);
+        console.log('Kong: deleteUpstreamHost: got ', error, response.statusCode, body);
 
         if (!error && response.statusCode === 204) {
           resolve(response);
@@ -394,6 +394,8 @@ module.exports = {
       };
 
       function callback(error, response, body) {
+        console.log('Kong: deleteCertificate: ', options);
+        console.log('Kong: deleteCertificate: got ', error, response.statusCode, body);
 
         if (!error && response.statusCode === 204) {
           resolve(response);
@@ -421,7 +423,7 @@ module.exports = {
       };
 
       function callback(error, response, body) {
-        // console.log('Kong: addCertificate: ', options);
+        console.log('Kong: addCertificate: ', options);
         console.log('Kong: addCertificate: got ', error, response.statusCode, body);
 
         if (!error && response.statusCode === 201) {

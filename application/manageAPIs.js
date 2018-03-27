@@ -24,6 +24,8 @@ let domains = containers.reduce((s, container) => {
   return s;
 }, new Set());
 
+console.log('Detected ' + domains.length + ' domains from containers:', domains);
+
 return kongAPI.listAPIs()
   .then((apis) => {
     let newAPIs = [];
@@ -82,6 +84,7 @@ return kongAPI.listAPIs()
           let certificates = data.data;
           let domainsWithoutCertificate = [];
           certificatePromises = array();
+          certificatePromises.push(() => {return;});
           certificates.forEach((certificate) => {
             if (!domains.has(certificate.snis[0]))
               certificatePromises.push(kongAPI.deleteCertificate(certificate.id));
@@ -94,12 +97,14 @@ return kongAPI.listAPIs()
 
           Promise.all(certificatePromises)
             .then((values) => {
-              console.log('Removed', certificatePromises.length, 'Certificates!');
+              console.log('Removed', certificatePromises.length-1, 'Certificates!');
               // build command string
               let cmd = 'certbot certonly --agree-tos --standalone --preferred-challenges http -n -m ' + EMAIL + ' --expand -d ' + domainsWithoutCertificate.join(',');
 
+              console.log('Now executing the certbot command:', cmd);
               const certbot_log = require('child_process').execSync(cmd);
               //TODO check log
+              console.log('The command returned:', certbot_log);
 
               let lastPromises = array();
               const path = '/etc/letsencrypt/live';
