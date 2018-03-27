@@ -24,7 +24,7 @@ let domains = containers.reduce((s, container) => {
   return s;
 }, new Set());
 
-console.log('Detected ' + domains.length + ' domains from containers:', domains);
+console.log('Detected ' + domains.size + ' domains from containers:', domains);
 
 return kongAPI.listAPIs()
   .then((apis) => {
@@ -34,7 +34,7 @@ return kongAPI.listAPIs()
         return;
       let found = false;
       apis.data.forEach((api) => {
-        if (container.Env.LETSENCRYPT_HOST === api.hosts[0]) {
+        if (api.hosts && container.Env.LETSENCRYPT_HOST === api.hosts[0]) {
           found = true;
           return;
         }
