@@ -6,7 +6,8 @@ const kongAPI = require('./kong_api.js'),
   fs = require('fs'),
   containers = JSON.parse(fs.readFileSync('./container.json', 'utf8'));
 const EMAIL = 'kjunghanns@informatik.uni-leipzig.de', //TODO read setted email from container
-  companionIP = '172.17.0.5'; //later use compose service name
+  companionIP = '172.17.0.5', //later use compose service name
+  LetsEncryptPrefix = 'le-';
 
 console.log('Read '+containers.length+' container from docker-gen file');
 
@@ -26,14 +27,14 @@ let domains = containers.reduce((s, container) => {
 
 console.log('Detected ' + domains.size + ' domains from containers:', domains);
 
-return kongAPI.listAPIs()
+return kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
   .then((apis) => {
     let newAPIs = [];
     containers.forEach((container) => {
       if (!container.State || !container.State.Running || !container.Env || !container.Env.LETSENCRYPT_HOST)
         return;
       let found = false;
-      apis.forEach((api) => {
+      (apis || []).forEach((api) => {
         if (api.domain && container.Env.LETSENCRYPT_HOST === api.domain) {
           found = true;
           return;
@@ -59,6 +60,42 @@ return kongAPI.listAPIs()
         obsoleteAPIs.push(api);
     });
     console.log('Found '+obsoleteAPIs.length+' obsolete APIs');
+
+    let promises = [];
+    obsoleteAPIs.forEach((api) => {
+      promises.push(kongAPI.deleteUpstreamHost(api.id));
+    });
+    Promise.all(promises)
+      .then(() => {
+        //update upstream URLs
+        return kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
+          .then((apis) => {
+            let changedUpstreams = [];
+            containers.forEach((container) => {
+              if (!container.State || !container.State.Running || !container.Env || !container.Env.LETSENCRYPT_HOST)
+                return;
+              let found = false;
+              (apis || []).forEach((api) => {
+                if (api.domain && container.Env.LETSENCRYPT_HOST === api.domain) {
+                  found = true;
+                  return;
+                }
+              });
+
+              if (found && container.IP === api.route.hosts[0])//TODO
+                changedUpstreams.push(container);
+            });
+            console.log('Found '+changedUpstreams.length+' APIs with outdated upstream');
+          })
+          .catch((error) => {
+            console.log('Error', error);
+            process.exit(0);
+          });
+      })
+      .catch((reason) => {
+        console.log('Failed delete old APIs: ', reason);
+        process.exit(0);
+      });
 
     //TODO Update APIs where the container has now another IP
 
@@ -148,7 +185,7 @@ return kongAPI.listAPIs()
   //get domains from containers
   //delete not needed services and routes (just lets encrypt ones) (first routes via /services/{service name or id}/routes and then the services)
   //update changed upstreams (just lets encrypt ones)
-  //create services and route for the missing domains (Could be done more early)
+  //create services and route for the missing domains
   //add to list of new apis, apis which need a new certificate
   //create a service and a route for the companion
   //get the certificates

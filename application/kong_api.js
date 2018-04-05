@@ -10,191 +10,9 @@ const request = require('request'),
   fs = require('fs');
 
 const KONG_ADMIN = (URLs.KONG_ADMIN === '') ? 'http://localhost:8001/' : URLs.KONG_ADMIN,
-  KONG_OAUTH2 = (URLs.SELF === '') ? 'https://oauth2test.localhost' : URLs.SELF;
+  LetsEncryptPrefix = 'le-';
 
 module.exports = {
-  //returns {"created_at":,"id":""}
-  createConsumer: (consumerId) => {
-    let promise = new Promise((resolve, reject) => {
-      const options = {
-        url: KONG_ADMIN + 'consumers/',
-        method: 'PUT',
-        json: true,
-        body: {
-          custom_id: consumerId
-        }
-      };
-
-      function callback(error, response, body) {
-        //console.log('Kong: createConsumer got: ', error, response.statusCode, body);
-
-        if (!error && (response.statusCode === 201 || response.statusCode === 200)) {
-          let consumer = body;
-          resolve(consumer);
-        } else {
-          reject(error);
-        }
-      }
-
-      //console.log('Kong: createConsumer: ', options);
-
-      request(options, callback);
-    });
-    return promise;
-  },
-  //returns {id:, created_at: , custom_id: }
-  getConsumerByMongoDBId: (consumerId) => {
-    let promise = new Promise((resolve, reject) => {
-      const options = {
-        url: KONG_ADMIN + 'consumers/',
-        method: 'GET',
-        json: true,
-        body: {
-          custom_id: consumerId
-        }
-      };
-
-      function callback(error, response, body) {
-        //console.log('we have send: ', options);
-        //console.log('we got: ', error, response.statusCode, body);
-
-        if (!error && (response.statusCode === 201 || response.statusCode === 200)) {
-          const consumers = body.data;
-
-          //it could happen that there are different consumers with the same costum_id - get the newest one
-          const consumer = consumers.reduce(
-            (prev, curr) => {
-              if (prev === null)
-                return curr;
-
-              if (prev.created_at < curr.created_at)
-                return curr;
-
-              return prev;
-            }, null
-          );
-
-          resolve(consumer);
-        } else {
-          reject(error);
-        }
-      }
-
-      request(options, callback);
-    });
-    return promise;
-  },
-  //returns {"consumer_id":"","client_id":"", id:"","created_at":,"redirect_uri":"","name":"","client_secret":""}
-  createApplication: (consumerKongId, applicationName, redirectURI) => {
-    let promise = new Promise((resolve, reject) => {
-      const options = {
-        url: KONG_ADMIN + 'consumers/' + consumerKongId + '/oauth2',
-        method: 'POST',
-        json: true,
-        body: {
-          name: applicationName,
-          redirect_uri: redirectURI
-        }
-      };
-
-      function callback(error, response, body) {
-        if (!error && response.statusCode === 201) {
-          let application = body;
-          if (consumerKongId !== application.consumer_id)
-            reject('created Application for wrong consumer');
-          resolve(application);
-        } else {
-          reject(error);
-        }
-      }
-
-      request(options, callback);
-    });
-    return promise;
-  },
-  //returns {{"consumer_id":"","client_id":"","id":"","created_at":,"name":"standard","redirect_uri":"","client_secret":""}
-  getStandardApplicationOfConsumer: (consumerKongId) => {
-    let promise = new Promise((resolve, reject) => {
-      const options = {
-        url: KONG_ADMIN + 'consumers/' + consumerKongId + '/oauth2',
-        method: 'GET',
-        json: true
-      };
-
-      function callback(error, response, body) {
-        //console.log('we have send: ', options);
-        //console.log('we got: ', error, response.statusCode, body);
-
-        if (response.statusCode === 404 && body.message === 'Not found') {
-          resolve (null);
-          return;
-        }
-
-        if (!error && (response.statusCode === 201 || response.statusCode === 200)) {
-          const applications = body;
-
-          if (applications.total < 1) {
-            resolve(null);
-            return;
-          }
-
-          const application = applications.data.find((app) => {
-            if (app.name = 'standard')
-              return true;
-            return false;
-          });
-
-          resolve(application);
-        } else {
-          reject(error);
-        }
-      }
-
-      request(options, callback);
-    });
-    return promise;
-  },
-  //returns {{"consumer_id":"","client_id":"","id":"","created_at":,"name":"standard","redirect_uri":"","client_secret":""}
-  getStandardApplicationByMongoDBId: (consumerId) => {
-    return module.exports.getConsumerByMongoDBId(consumerId)
-      .then((consumer) => {
-        if (consumer === null)
-          return null;
-
-        return module.exports.getStandardApplicationOfConsumer(consumer.id);
-      });
-  },
-  //returns {"token_type":"bearer","access_token":"","expires_in":}
-  getAccessToken: (clientId, clientSecret, scope, url = KONG_OAUTH2) => {
-    let promise = new Promise((resolve, reject) => {
-      const options = {
-        url: url + '/oauth2/token',
-        method: 'POST',
-        body: 'grant_type=client_credentials&client_id=' + clientId + '&client_secret=' + clientSecret + (scope ? '&scope=' + scope : ''),
-        agentOptions: {
-          rejectUnauthorized: false //Kong has an own certificate
-        }
-      };
-
-      function callback(error, response, body) {
-        console.log('Kong: getAccessToken: ', options);
-        console.log('Kong: getAccessToken: got ', error, (response === undefined) ? undefined : response.statusCode, body);
-
-        if (!error && response.statusCode === 200) {
-          let authorization = JSON.parse(body);
-          resolve(authorization);
-        } else {
-          reject(error);
-        }
-      }
-
-      request(options, callback);
-    });
-    return promise;
-  },
-
-  //functions which are for a general configuration of Kongs API
-
   //returns ...
   addUpstreamHost: (hostname, upstreamURL, https_only = true) => {
     let promise = new Promise((resolve, reject) => {
@@ -254,34 +72,65 @@ module.exports = {
   //returns nothing
   deleteUpstreamHost: (routeId, serviceId) => {
     let promise = new Promise((resolve, reject) => {
-      let options = {
-        url: KONG_ADMIN + 'routes/' + routeId,
-        method: 'DELETE'
-      };
-
-      function callback(error, response, body) {
-        console.log('Kong: deleteRoute: ', options);
-        console.log('Kong: deleteRoute: got ', error, response.statusCode, body);
-
-        if (!error && response.statusCode === 204) {
-          //Now the service
-          options = {
-            url: KONG_ADMIN + 'services/' + serviceId,
-            method: 'DELETE'
-          };
-
-          function callbackService(error, response, body) {
-            console.log('Kong: deleteService: ', options);
-            console.log('Kong: deleteService: got ', error, response.statusCode, body);
-
-            if (!error && response.statusCode === 204) {
-              resolve(response);
-            } else {
+      return removeRoute(routeId)
+        .then((data) => {
+          return removeService(serviceId)
+            .then((data2) => {
+              resolve(data2);
+            })
+            .catch((error) => {
               reject(error);
-            }
+            });
+        })
+        .catch((error) => {
+          reject(error);
+        });
+    });
+
+    return promise;
+  },
+
+  //returns nothing
+  deleteUpstreamHost: (serviceIdentificator) => {
+    let promise = new Promise((resolve, reject) => {
+      let options = {
+        url: KONG_ADMIN + 'services/' + serviceIdentificator + '/routes',
+        method: 'GET',
+        json: true
+      };
+
+      function deleteServiceLocal(serviceIdentificator) {
+        return removeService(serviceIdentificator)
+          .then((data) => {
+            resolve(data);
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      }
+
+      function callback(error, response, body) {
+        console.log('Kong: getRoutes: ', options);
+        console.log('Kong: getRoutes: got ', error, response.statusCode, body);
+
+        if (!error && response.statusCode === 200) {
+          let promises = [];
+          if (body.total > 0) {
+            body.data.forEach((route) => {
+              promises.push(removeRoute(route.id));
+            });
+
+            return Promise.all(promises)
+              .then((data) => {
+                return deleteServiceLocal(serviceIdentificator);
+              })
+              .catch((error) => {
+                reject(error);
+              });
           }
-
-          request(options, callbackService);
+          else {
+            return deleteServiceLocal(serviceIdentificator);
+          }
         } else {
           reject(error);
         }
@@ -290,97 +139,6 @@ module.exports = {
       request(options, callback);
     });
 
-    return promise;
-  },
-
-  /*returns
-  {
-    "api_id": "",
-    "id": "",
-    "created_at": ,
-    "enabled": true,
-    "name": "",
-    "config": {
-      "mandatory_scope": false,
-      "token_expiration": 7200,
-      "enable_implicit_grant": true,
-      "hide_credentials": false,
-      "provision_key": "",
-      "accept_http_if_already_terminated": false,
-      "enable_authorization_code": true,
-      "enable_client_credentials": true,
-      "enable_password_grant": false
-    }
-  }
-  */
-  initializePluginOAuth2: (hostname, scopes) => { //hostname could also be the kong id
-    let promise = new Promise((resolve, reject) => {
-      const options = {
-        url: KONG_ADMIN + 'apis/' + hostname + '/plugins',
-        method: 'POST',
-        json: true,
-        body: {
-          name: 'oauth2',
-          'config.scopes': scopes,
-          'config.enable_client_credentials': true
-        }
-      };
-
-      function callback(error, response, body) {
-        if (!error && response.statusCode === 201) {
-          let plugin = body;
-          if (!plugin.enabled)
-            reject('Failed creating plugin');
-          resolve(plugin);
-        } else {
-          reject(error);
-        }
-      }
-
-      request(options, callback);
-    });
-    return promise;
-  },
-
-  /* returns
-  {
-    "id": ,
-    "api_id": "",
-    "consumer_id": "",
-    "name": "",
-    "config": {
-
-    },
-    "enabled": true,
-    "created_at":
-  }
-  */
-  initializePluginACL: (hostname, whitelist, blacklist) => {
-    let promise = new Promise((resolve, reject) => {
-      const options = {
-        url: KONG_ADMIN + 'apis/' + hostname + '/plugins',
-        method: 'POST',
-        json: true,
-        body: {
-          name: 'acl',
-          'config.whitelist': whitelist,
-          'config.blacklist': blacklist
-        }
-      };
-
-      function callback(error, response, body) {
-        if (!error && response.statusCode === 201) {
-          let plugin = body;
-          if (!plugin.enabled)
-            reject('Failed creating plugin');
-          resolve(plugin);
-        } else {
-          reject(error);
-        }
-      }
-
-      request(options, callback);
-    });
     return promise;
   },
 
@@ -412,13 +170,25 @@ module.exports = {
                 let serviceid = route.service.id;
                 let service = body.data.find((d) => d.id === serviceid);
 
-                if (service) {
-                  result.push({
-                    route: route,
-                    service: service,
-                    upstream: service.protocol + '://' + service.host + ':' + service.port + service.path,
-                    domain: route.hosts[0]
+                if (service && service.name.startsWith(LetsEncryptPrefix)) {
+                  let existingEntry = result.find((entry) => {
+                    return entry.service.id === service.id;
                   });
+
+                  if (!existingEntry)
+                    result.push({
+                      route: route,
+                      service: service,
+                      upstream: service.protocol + '://' + service.host + ':' + service.port + service.path,
+                      domain: route.hosts[0]
+                    });
+                  else {
+                    existingEntry.domain = existingEntry.domain || route.hosts[0];
+                    if (!existingEntry.routes) {
+                      existingEntry.routes = [existingEntry.route];
+                    }
+                    existingEntry.routes.push(route);
+                  }
                 }
               });
               resolve(result);
@@ -511,5 +281,77 @@ module.exports = {
       request(options, callback);
     });
     return promise;
+  },
+
+  updateService: (identifier, name, url) => {
+    let promise = new Promise((resolve, reject) => {
+      const options = {
+        url: KONG_ADMIN + 'services/' + identifier,
+        method: 'PATCH',
+        json: true,
+        body: {
+          name: name,
+          url: url
+        }
+      };
+
+      function callback(error, response, body) {
+        console.log('Kong: updateService: ', options);
+        console.log('Kong: updateService: got ', error, response.statusCode, body);
+
+        if (!error && response.statusCode === 200) {
+          resolve(body);
+        } else {
+          reject(error);
+        }
+      }
+
+      request(options, callback);
+    });
+    return promise;
   }
 };
+
+function removeRoute(routeId) {
+  return new Promise((resolve, reject) => {
+    let options = {
+      url: KONG_ADMIN + 'routes/' + routeId,
+      method: 'DELETE'
+    };
+
+    function callback(error, response, body) {
+      console.log('Kong: removeRoute: ', options);
+      console.log('Kong: removeRoute: got ', error, response.statusCode, body);
+
+      if (!error && response.statusCode === 204) {
+        resolve(response);
+      } else {
+        reject(error);
+      }
+    }
+
+    request(options, callback);
+  });
+}
+
+function removeService(serviceId) {
+  return new Promise((resolve, reject) => {
+    let options = {
+      url: KONG_ADMIN + 'services/' + serviceId,
+      method: 'DELETE'
+    };
+
+    function callback(error, response, body) {
+      console.log('Kong: removeService: ', options);
+      console.log('Kong: removeService: got ', error, response.statusCode, body);
+
+      if (!error && response.statusCode === 204) {
+        resolve(response);
+      } else {
+        reject(error);
+      }
+    }
+
+    request(options, callback);
+  });
+}
