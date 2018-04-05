@@ -5,15 +5,15 @@ console.log('Starting updating APIs of Kong');
 const kongAPI = require('./kong_api.js'),
   fs = require('fs'),
   containers = JSON.parse(fs.readFileSync('./container.json', 'utf8'));
-const EMAIL = 'kjunghanns@informatik.uni-leipzig.de'; //TODO read setted email from container
+const EMAIL = 'kjunghanns@informatik.uni-leipzig.de', //TODO read setted email from container
+  companionIP = '172.17.0.5'; //later use compose service name
 
 console.log('Read '+containers.length+' container from docker-gen file');
 
 /*
 This code prepares Kong and a config file for certbot.
 Detailed:
- * Update APIs of Kong (while reading running containers - description stored in container.json)
- * Detect for which domain a new certificate have to be created and start certbot
+ *
 */
 
 let domains = containers.reduce((s, container) => {
@@ -33,8 +33,8 @@ return kongAPI.listAPIs()
       if (!container.State || !container.State.Running || !container.Env || !container.Env.LETSENCRYPT_HOST)
         return;
       let found = false;
-      apis.data.forEach((api) => {
-        if (api.hosts && container.Env.LETSENCRYPT_HOST === api.hosts[0]) {
+      apis.forEach((api) => {
+        if (api.domain && container.Env.LETSENCRYPT_HOST === api.domain) {
           found = true;
           return;
         }
@@ -46,10 +46,10 @@ return kongAPI.listAPIs()
     console.log('Found '+newAPIs.length+' new containers (for new APIs)');
 
     let obsoleteAPIs = [];
-    apis.data.forEach((api) => {
+    (apis || []).forEach((api) => {
       let found = false;
       containers.forEach((container) => {
-        if (container.State && container.State.Running && container.Env && api.hosts && container.Env.LETSENCRYPT_HOST === api.hosts[0]) {
+        if (container.State && container.State.Running && container.Env && api.domain && container.Env.LETSENCRYPT_HOST === api.domain) {
           found = true;
           return;
         }
@@ -66,17 +66,17 @@ return kongAPI.listAPIs()
 
     let promises = [];
     obsoleteAPIs.forEach((api) => {
-      // promises.push(kongAPI.deleteUpstreamHost(api.id));//TODO just remove them if they are lets encrypt apis
+      promises.push(kongAPI.deleteUpstreamHost(api.id));//TODO just remove them if they are lets encrypt apis
     });
     newAPIs.forEach((container) => {
-      promises.push(kongAPI.addUpstreamHost(container.Env.LETSENCRYPT_HOST, container.Env.LETSENCRYPT_HOST, 'http://'+container.IP));
+      promises.push(kongAPI.addUpstreamHost(container.Env.LETSENCRYPT_HOST, 'http://'+container.IP));
     });
 
     Promise.all(promises)
       .then(values => {
         console.log('Changed', promises.length, 'APIs!');
         //---------------------------------------------------------
-
+        process.exit(0);return;
         return kongAPI.listCertificates()
         .then((data) => {//Stopps here
           //not valid certificates have to be deleted
@@ -140,3 +140,21 @@ return kongAPI.listAPIs()
     console.log('Error', error);
     process.exit(0);
   });
+
+
+
+  //new workflow
+
+  //get domains from containers
+  //delete not needed services and routes (just lets encrypt ones) (first routes via /services/{service name or id}/routes and then the services)
+  //update changed upstreams (just lets encrypt ones)
+  //create services and route for the missing domains (Could be done more early)
+  //add to list of new apis, apis which need a new certificate
+  //create a service and a route for the companion
+  //get the certificates
+  //Add certificates with domain to Kong (perhaps add the end?)
+  //delete service and the route of the companion
+
+
+  //Remarks:
+  // - retrieving a list could contain "next" because the list is too long ...

@@ -195,29 +195,51 @@ module.exports = {
 
   //functions which are for a general configuration of Kongs API
 
-  //returns {"upstream_url":"","created_at":,"id":"","name":"","preserve_host":false,"strip_request_path":false,"request_host":""}
-  addUpstreamHost: (hostname, requestHost, upstreamURL) => {
+  //returns ...
+  addUpstreamHost: (hostname, upstreamURL, https_only = true) => {
     let promise = new Promise((resolve, reject) => {
-      const options = {
-        url: KONG_ADMIN + 'apis/',
+      let options = {
+        url: KONG_ADMIN + 'services/',
         method: 'POST',
         json: true,
         body: {
           name: hostname,
-          hosts: requestHost,
-          upstream_url: upstreamURL
+          url: upstreamURL
         }
       };
 
       function callback(error, response, body) {
-        console.log('Kong: addUpstreamHost: ', options);
-        console.log('Kong: addUpstreamHost: got ', error, response.statusCode, body);
+        console.log('Kong: addService: ', options);
+        console.log('Kong: addService: got ', error, response.statusCode, body);
 
         if (!error && response.statusCode === 201) {
-          let api = body;
-          if (api.name !== hostname)
-            reject('created Application for wrong hostname');
-          resolve(api);
+          //now the route
+          let protocols = ['https'];
+          if (!https_only)
+            protocols.push('http');
+          options = {
+            url: KONG_ADMIN + 'services/' + hostname + '/routes',
+            method: 'POST',
+            json: true,
+            body: {
+              hosts: [hostname],
+              service: hostname,
+              protocols: protocols
+            }
+          };
+
+          function callbackRoute(error, response, body) {
+            console.log('Kong: addRoute: ', options);
+            console.log('Kong: addRoute: got ', error, response.statusCode, body);
+
+            if (!error && response.statusCode === 201) {
+              resolve(body);
+            } else {
+              reject(error);
+            }
+          }
+
+          request(options, callbackRoute);
         } else {
           reject(error);
         }
@@ -225,23 +247,41 @@ module.exports = {
 
       request(options, callback);
     });
+
     return promise;
   },
 
   //returns nothing
-  deleteUpstreamHost: (hostId) => {
+  deleteUpstreamHost: (routeId, serviceId) => {
     let promise = new Promise((resolve, reject) => {
-      const options = {
-        url: KONG_ADMIN + 'apis/' + hostId,
+      let options = {
+        url: KONG_ADMIN + 'routes/' + routeId,
         method: 'DELETE'
       };
 
       function callback(error, response, body) {
-        console.log('Kong: deleteUpstreamHost: ', options);
-        console.log('Kong: deleteUpstreamHost: got ', error, response.statusCode, body);
+        console.log('Kong: deleteRoute: ', options);
+        console.log('Kong: deleteRoute: got ', error, response.statusCode, body);
 
         if (!error && response.statusCode === 204) {
-          resolve(response);
+          //Now the service
+          options = {
+            url: KONG_ADMIN + 'services/' + serviceId,
+            method: 'DELETE'
+          };
+
+          function callbackService(error, response, body) {
+            console.log('Kong: deleteService: ', options);
+            console.log('Kong: deleteService: got ', error, response.statusCode, body);
+
+            if (!error && response.statusCode === 204) {
+              resolve(response);
+            } else {
+              reject(error);
+            }
+          }
+
+          request(options, callbackService);
         } else {
           reject(error);
         }
@@ -249,6 +289,7 @@ module.exports = {
 
       request(options, callback);
     });
+
     return promise;
   },
 
@@ -343,17 +384,50 @@ module.exports = {
     return promise;
   },
 
+  //returns list of objects: {domain, upstream, route, service}
   listAPIs: () => {
     let promise = new Promise((resolve, reject) => {
-      const options = {
-        url: KONG_ADMIN + 'apis/',
+      let options = {
+        url: KONG_ADMIN + 'routes/',
         method: 'GET',
         json: true
       };
+      let routes = [];
 
       function callback(error, response, body) {
         if (!error) {
-          resolve(body);
+          routes = body.data || [];
+          //Now the services
+          options = {
+            url: KONG_ADMIN + 'services/',
+            method: 'GET',
+            json: true
+          };
+
+          function callbackService(error, response, body) {
+            if (!error) {
+              // go through everything and match them
+              let result = [];
+              routes.forEach((route) => {
+                let serviceid = route.service.id;
+                let service = body.data.find((d) => d.id === serviceid);
+
+                if (service) {
+                  result.push({
+                    route: route,
+                    service: service,
+                    upstream: service.protocol + '://' + service.host + ':' + service.port + service.path,
+                    domain: route.hosts[0]
+                  });
+                }
+              });
+              resolve(result);
+            } else {
+              reject(error);
+            }
+          }
+
+          request(options, callbackService);
         } else {
           reject(error);
         }
@@ -361,6 +435,7 @@ module.exports = {
 
       request(options, callback);
     });
+
     return promise;
   },
 
@@ -417,8 +492,8 @@ module.exports = {
         json: true,
         body: {
           snis: [domain],
-          cert: fs.readFileSync(path+'/'+domain+'/fullchain.pem'),
-          key: fs.readFileSync(path+'/'+domain+'/privkey.pem')
+          cert: fs.readFileSync(path+'/'+domain+'/fullchain.pem').toString(),
+          key: fs.readFileSync(path+'/'+domain+'/privkey.pem').toString()
         }
       };
 
@@ -427,7 +502,7 @@ module.exports = {
         console.log('Kong: addCertificate: got ', error, response.statusCode, body);
 
         if (!error && response.statusCode === 201) {
-          resolve(api);
+          resolve(body);
         } else {
           reject(error);
         }
