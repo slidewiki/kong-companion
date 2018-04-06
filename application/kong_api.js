@@ -21,7 +21,7 @@ module.exports = {
         method: 'POST',
         json: true,
         body: {
-          name: hostname,
+          name: LetsEncryptPrefix + hostname,
           url: upstreamURL
         }
       };
@@ -36,13 +36,66 @@ module.exports = {
           if (!https_only)
             protocols.push('http');
           options = {
-            url: KONG_ADMIN + 'services/' + hostname + '/routes',
+            url: KONG_ADMIN + 'routes/',
             method: 'POST',
             json: true,
             body: {
               hosts: [hostname],
-              service: hostname,
+              service: LetsEncryptPrefix + hostname,
               protocols: protocols
+            }
+          };
+
+          function callbackRoute(error, response, body) {
+            console.log('Kong: addRoute: ', options);
+            console.log('Kong: addRoute: got ', error, response.statusCode, body);
+
+            if (!error && response.statusCode === 201) {
+              resolve(body);
+            } else {
+              reject(error);
+            }
+          }
+
+          request(options, callbackRoute);
+        } else {
+          reject(error);
+        }
+      }
+
+      request(options, callback);
+    });
+
+    return promise;
+  },
+
+  addCompanionAPI: (upstreamURL) => {
+    let promise = new Promise((resolve, reject) => {
+      let options = {
+        url: KONG_ADMIN + 'services/',
+        method: 'POST',
+        json: true,
+        body: {
+          name: 'kong-companion',
+          url: upstreamURL
+        }
+      };
+
+      function callback(error, response, body) {
+        console.log('Kong: addService: ', options);
+        console.log('Kong: addService: got ', error, response.statusCode, body);
+
+        if (!error && response.statusCode === 201) {
+          //now the route
+          options = {
+            url: KONG_ADMIN + '/routes/',
+            method: 'POST',
+            json: true,
+            body: {
+              paths: ['/.well-known/acme-challenge'],
+              service: 'kong-companion',
+              protocols: ['http', 'https'],
+              methods: ['GET', 'OPTIONS']
             }
           };
 
@@ -219,7 +272,7 @@ module.exports = {
 
       function callback(error, response, body) {
         if (!error) {
-          resolve(body);
+          resolve(body.data);
         } else {
           reject(error);
         }
