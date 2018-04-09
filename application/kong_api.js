@@ -366,6 +366,63 @@ module.exports = {
       request(options, callback);
     });
     return promise;
+  },
+
+  removeAll: () => {
+    let promise = new Promise((resolve, reject) => {
+      let options = {
+        url: KONG_ADMIN + 'routes/',
+        method: 'GET',
+        json: true
+      };
+      let routes = [];
+
+      function callback(error, response, body) {
+        if (!error) {
+          routes = body.data || [];
+          //Now the services
+          options = {
+            url: KONG_ADMIN + 'services/',
+            method: 'GET',
+            json: true
+          };
+
+          function callbackService(error, response, body) {
+            if (!error) {
+              // go through everything and match them
+              let promises = [];
+              routes.forEach((route) => {
+                promises.push(removeRoute(route.id));
+              });
+              Promise.all(promises)
+                .then(() => {
+                  promises = [];
+                  (body.data || []).forEach((service) => {
+                    promises.push(removeService(service.id));
+                  });
+                  Promise.all(promises)
+                    .then(() => {
+                      resolve();
+                    })
+                    .catch((error) => reject(error));
+                })
+                .catch((error) => reject(error));
+              resolve(result);
+            } else {
+              reject(error);
+            }
+          }
+
+          request(options, callbackService);
+        } else {
+          reject(error);
+        }
+      }
+
+      request(options, callback);
+    });
+
+    return promise;
   }
 };
 

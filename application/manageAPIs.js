@@ -146,7 +146,7 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
 
     // build command string
     const domainsForCertbot = apisForWhichACertificateIsNeeded.reduce((a, curr) => {
-      const d = curr.domain || curr.Env.LETSENCRYPT_HOST ;
+      const d = curr.domain || curr.Env.LETSENCRYPT_HOST;
       if (a === '')
         return d;
       return a + ',' + d;
@@ -165,7 +165,7 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
     promises = [];
     const path = '/etc/letsencrypt/live';
     apisForWhichACertificateIsNeeded.forEach((api) => {
-      promises.push(kongAPI.addCertificate(api-domain, path));
+      promises.push(kongAPI.addCertificate(api.domain || api.Env.LETSENCRYPT_HOST, path));
     });
 
     return Promise.all(promises);
@@ -182,7 +182,6 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
   })
   .catch((error) => {
     console.log('Error', error);
-    kongAPI.deleteUpstreamHost('kong-companion');
     process.exit(0);
   });
 
