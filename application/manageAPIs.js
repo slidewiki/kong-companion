@@ -119,7 +119,7 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
     apisForWhichACertificateIsNeeded = [].concat(newAPIs);
     certificates.forEach((certificate) => {
       const domain = certificate.snis[0];
-      let matchingApi = lastAPIs.find((api) => return api.route.hosts[0] === domain);
+      let matchingApi = lastAPIs.find((api) => api.route.hosts[0] === domain);
       if (matchingApi) {
         const now = (new Date()).getTime();
         if (now > certificate.created_at + 89*24*60*60*1000) { //89 days
@@ -142,13 +142,14 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
   })
   //get the certificates
   .then(() => {
-    console.log('Removed', promises.length-1, 'Certificates!');
+    console.log('Removed', promises.length, 'Certificates!');
 
     // build command string
     const domainsForCertbot = apisForWhichACertificateIsNeeded.reduce((a, curr) => {
+      const d = curr.domain || curr.Env.LETSENCRYPT_HOST ;
       if (a === '')
-        return curr.domain;
-      return a + ',' + curr.domain;
+        return d;
+      return a + ',' + d;
     }, '');
     let cmd = 'certbot certonly --agree-tos --standalone --preferred-challenges http -n -m ' + EMAIL + ' --expand -d ' + domainsForCertbot;
 
@@ -181,6 +182,7 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
   })
   .catch((error) => {
     console.log('Error', error);
+    kongAPI.deleteUpstreamHost('kong-companion');
     process.exit(0);
   });
 

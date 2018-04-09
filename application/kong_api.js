@@ -41,7 +41,9 @@ module.exports = {
             json: true,
             body: {
               hosts: [hostname],
-              service: LetsEncryptPrefix + hostname,
+              service: {
+                id: body.id
+              },
               protocols: protocols
             }
           };
@@ -88,12 +90,14 @@ module.exports = {
         if (!error && response.statusCode === 201) {
           //now the route
           options = {
-            url: KONG_ADMIN + '/routes/',
+            url: KONG_ADMIN + 'routes/',
             method: 'POST',
             json: true,
             body: {
               paths: ['/.well-known/acme-challenge'],
-              service: 'kong-companion',
+              service: {
+                id: body.id
+              },
               protocols: ['http', 'https'],
               methods: ['GET', 'OPTIONS']
             }
