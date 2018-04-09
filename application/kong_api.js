@@ -79,7 +79,7 @@ module.exports = {
         json: true,
         body: {
           name: 'kong-companion',
-          url: upstreamURL
+          url: upstreamURL + '/.well-known/acme-challenge/'
         }
       };
 
