@@ -172,7 +172,7 @@ module.exports = {
 
         if (!error && response.statusCode === 200) {
           let promises = [];
-          if (body.total > 0) {
+          if (body.data.length > 0) {
             body.data.forEach((route) => {
               promises.push(removeRoute(route.id));
             });
@@ -325,7 +325,7 @@ module.exports = {
       };
 
       function callback(error, response, body) {
-        console.log('Kong: addCertificate: ', options);
+        // console.log('Kong: addCertificate: ', options);
         console.log('Kong: addCertificate: got ', error, response.statusCode, body);
 
         if (!error && response.statusCode === 201) {
