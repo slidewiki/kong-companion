@@ -407,7 +407,6 @@ module.exports = {
                     .catch((error) => reject(error));
                 })
                 .catch((error) => reject(error));
-              resolve(result);
             } else {
               reject(error);
             }
