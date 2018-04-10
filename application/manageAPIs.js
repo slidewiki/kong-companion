@@ -34,6 +34,7 @@ let promises = [];
 let lastAPIs = [];
 let currentCertificates = [];
 let apisForWhichACertificateIsNeeded = [];
+let doesCompanionAPIAlreadyExists = false;
 kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
   //delete not needed services and routes (just lets encrypt ones) (first routes via /services/{service name or id}/routes and then the services)
   //Also get new apis
@@ -107,6 +108,12 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
       promises.push(kongAPI.addUpstreamHost(container.Env.LETSENCRYPT_HOST, 'http://'+container.IP));
     });
 
+    //check if kong api already there
+    apis.forEach((api) => {
+      if (api.service.name === 'kong-companion')
+        doesCompanionAPIAlreadyExists = true;
+    }):
+
     return Promise.all(promises);
   })
   .then(() => {
@@ -129,6 +136,8 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
     });
 
     //create service and route for companion
+    if (doesCompanionAPIAlreadyExists)
+      return Promise.resolve();
     return kongAPI.addCompanionAPI('http://' + companionIP);
   })
   //delete unneeded certificates
