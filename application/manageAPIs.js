@@ -144,6 +144,11 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
   .then(() => {
     console.log('Removed', promises.length, 'Certificates!');
 
+    if (apisForWhichACertificateIsNeeded.length < 1) {
+      console.log('No need to create certificates');
+      return Promise.resolve();
+    }
+
     // build command string
     const domainsForCertbot = apisForWhichACertificateIsNeeded.reduce((a, curr) => {
       const d = curr.domain || curr.Env.LETSENCRYPT_HOST;

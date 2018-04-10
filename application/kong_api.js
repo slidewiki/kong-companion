@@ -318,7 +318,7 @@ module.exports = {
         method: 'POST',
         json: true,
         body: {
-          snis: [domain],
+          snis: domain,
           cert: fs.readFileSync(path+'/'+domain+'/fullchain.pem').toString(),
           key: fs.readFileSync(path+'/'+domain+'/privkey.pem').toString()
         }
