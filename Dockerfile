@@ -56,5 +56,5 @@ ADD ./application/ ./
 # -------- #
 #   Run!   #
 # -------- #
-
-ENTRYPOINT docker-gen -watch -interval 360 container.tpl container.json -notify "/nodeApp/handleContainers.sh"
+ADD dockergen.conf dockergen.conf
+ENTRYPOINT docker-gen -config dockergen.conf

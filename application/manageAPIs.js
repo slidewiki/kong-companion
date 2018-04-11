@@ -14,7 +14,16 @@ console.log('Read '+containers.length+' container from docker-gen file');
 /*
 This code prepares Kong and a config file for certbot.
 Detailed:
- *
+//get domains from containers
+//delete not needed services and routes (just lets encrypt ones) (first routes via /services/{service name or id}/routes and then the services)
+//update changed upstreams (just lets encrypt ones)
+//create services and route for the missing domains
+//add to list of new apis, apis which need a new certificate
+//create a service and a route for the companion
+//delete unneeded certificates
+//get the certificates
+//Add certificates with domain to Kong (perhaps at the end?)
+//delete service and the route of the companion
 */
 
 //get domains from containers
@@ -189,22 +198,3 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
     console.log('Error', error);
     process.exit(0);
   });
-
-
-
-  //new workflow
-
-  //get domains from containers
-  //delete not needed services and routes (just lets encrypt ones) (first routes via /services/{service name or id}/routes and then the services)
-  //update changed upstreams (just lets encrypt ones)
-  //create services and route for the missing domains
-  //add to list of new apis, apis which need a new certificate
-  //create a service and a route for the companion
-  //delete unneeded certificates
-  //get the certificates
-  //Add certificates with domain to Kong (perhaps at the end?)
-  //delete service and the route of the companion
-
-
-  //Remarks:
-  // - retrieving a list could contain "next" because the list is too long ...
