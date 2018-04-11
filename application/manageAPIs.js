@@ -5,9 +5,9 @@ console.log('Starting updating APIs of Kong');
 const kongAPI = require('./kong_api.js'),
   fs = require('fs'),
   containers = JSON.parse(fs.readFileSync('./container.json', 'utf8'));
-const EMAIL = 'kjunghanns@informatik.uni-leipzig.de', //TODO read setted email from container
+const EMAIL = require('./configuration.js').EMAIL,
   companionIP = '172.17.0.5', //later use compose service name
-  LetsEncryptPrefix = 'le-';
+  LetsEncryptPrefix = require('./configuration.js').LetsEncryptPrefix;
 
 console.log('Read '+containers.length+' container from docker-gen file');
 

@@ -35,12 +35,12 @@ if (process.env.NODE_ENV === 'test') {
 
 //read URLs from ENV
 let kongURL = '',
-  selfURL = '';
+  email = 'kjunghanns@informatik.uni-leipzig.de';
 if (!co.isEmpty(process.env.KONG_ADMIN_URL)){
   kongURL = process.env.KONG_ADMIN_URL;
 }
-if (!co.isEmpty(process.env.SELF_URL)){
-  selfURL = process.env.SELF_URL;
+if (!co.isEmpty(process.env.LETSENCRYPT_EMAIL)){
+  email = process.env.LETSENCRYPT_EMAIL;
 }
 
 
@@ -52,7 +52,8 @@ module.exports = {
     SLIDEWIKIDATABASE: slidewikiDbName
   },
   URLS: {
-    KONG_ADMIN: kongURL,
-    SELF: selfURL
-  }
+    KONG_ADMIN: kongURL
+  },
+  LetsEncryptPrefix: 'le-',
+  EMAIL: email
 };

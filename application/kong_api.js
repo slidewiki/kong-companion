@@ -5,12 +5,12 @@ It has functions to create a costumer and a application and also to retrieve a a
 
 'use strict';
 
-const request = require('request'),
-  URLs = require('./configuration.js').URLS,
+let request = require('request'),
   fs = require('fs');
 
-const KONG_ADMIN = (URLs.KONG_ADMIN === '') ? 'http://localhost:8001/' : URLs.KONG_ADMIN,
-  LetsEncryptPrefix = 'le-';
+const URLs = require('./configuration.js').URLS,
+  KONG_ADMIN = (URLs.KONG_ADMIN === '') ? 'http://localhost:8001/' : URLs.KONG_ADMIN,
+  LetsEncryptPrefix = require('./configuration.js').LetsEncryptPrefix;
 
 module.exports = {
   //returns ...
