@@ -1,4 +1,4 @@
-'strict mode'
+'use strict';
 
 const kongAPI = require('./kong_api.js');
 

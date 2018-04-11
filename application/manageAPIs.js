@@ -1,4 +1,5 @@
-'strict mode'
+'use strict';
+/* eslint promise/no-return-wrap: "off" */
 
 console.log('Starting updating APIs of Kong');
 
@@ -141,7 +142,7 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
     return kongAPI.addCompanionAPI('http://' + companionIP);
   })
   //delete unneeded certificates
-  .then((data) => {
+  .then(() => {
     promises = [];
     currentCertificates.forEach((certificate) => {
       if (!domains.has(certificate.snis[0]))

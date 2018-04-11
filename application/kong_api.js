@@ -2,6 +2,8 @@
 Controller which configures a Kong instance.
 It has functions to create a costumer and a application and also to retrieve a access token for the API.
 */
+/* eslint no-inner-declarations: "off" */
+/* eslint no-dupe-keys: "warn" */
 
 'use strict';
 
@@ -130,10 +132,10 @@ module.exports = {
   deleteUpstreamHost: (routeId, serviceId) => {
     let promise = new Promise((resolve, reject) => {
       return removeRoute(routeId)
-        .then((data) => {
+        .then(() => {
           return removeService(serviceId)
-            .then((data2) => {
-              resolve(data2);
+            .then((data) => {
+              resolve(data);
             })
             .catch((error) => {
               reject(error);
@@ -178,7 +180,7 @@ module.exports = {
             });
 
             return Promise.all(promises)
-              .then((data) => {
+              .then(() => {
                 return deleteServiceLocal(serviceIdentificator);
               })
               .catch((error) => {
