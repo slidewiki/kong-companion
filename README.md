@@ -5,6 +5,14 @@ Node will detect the changes and filter out which certificates have to be added 
 Node will then use certbot to get missing certificates and update Kong via the Admin interface.
 It uses certbot in the same way as https://github.com/luispabon/kong-certbot-agent
 
+
+## Installation and running (in a container, works both on UNIX and Windows):
+
+### ENV
+
+* LETSENCRYPT_EMAIL - email address used for Lets Encrypt
+* KONG_ADMIN_URL - URL with port on which Kong is listening
+
 ## Commands
 Start test container:
 ```

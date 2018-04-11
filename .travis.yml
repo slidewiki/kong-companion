@@ -1,0 +1,46 @@
+language: node_js
+node_js: 8
+sudo: required
+git:
+  depth: 5
+branches:
+  only:
+  - "/^(?i:SWIK)-.*$/"
+  - master
+cache:
+  directories:
+  - "./application/node_modules"
+before_install:
+- if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" = "false" ] ; then ./travis_scripts/install_compose.sh ; fi
+- cd application
+before_script:
+- npm update --dev
+script:
+- sleep 15
+- npm run lint
+after_success:
+- cd ..
+- openssl aes-256-cbc -K $encrypted_2036d518b976_key -iv $encrypted_2036d518b976_iv -in deployment_keys.tar.enc -out deployment_keys.tar -d
+- if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" = "false" ] ; then ./travis_scripts/dockerhub.sh ; fi
+- if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" = "false" ] ; then ./travis_scripts/deploy.sh ; fi
+- cd application
+after_script:
+- npm run coverall
+- npm run stop:mongodb
+- rm -f deployment_keys.tar
+- rm -f ~/.docker/{cert.pem,key.pem,ca.pem,config.json}
+services:
+- docker
+notifications:
+  slack:
+    on_success: change
+    on_failure: always
+    rooms:
+      secure: qPAjYvVfyiiEYSrP4JnV/vSVRTGvETFdTGBb/TuLVynk84sOoH048udo1johLFCUALsmK7n11Nh9y2ehHo+jexH7UCzGHb4g7CJCNCa/EOIygMTbsntyspB2tCMAQbgf/hUMjGQrjqrysrvu21THhms2lRZ+fKFwmpI0xd+6MsSRVLjF95xl7gVC8ikIkUck27ZxcEOYhf3RK/tnPdbHjPu+dWSPkH7zVwLq3SvypRn7fwK9TDEo8VvXCNOF+6MX9KquCi251+0ZNTHKkiGkyqoz07tWPmaXuvf6v22XKZO8zWcDkA6qVtYheXkMYPl8cl0YAs5U7PwQz+mZhKQDbMoltj/NosKiKAtZk4Fg7ALweZE4wcIggfAhSe052ImgI06vtb1O6hVzGVxynT1vVISrPUymh2yNI/pJ1P/eHtFWg5TO+rxNHJSQYTWWRLxjEvgolDSpdOikDLRt/GrE7qkvqv0ONNPrxf2/bZBQaT27ALN/CWz5KiGAGSq8dilwiIBjUBRJCDgnmZQsa2p3kFUti7+TjMB0NhSpNc6ht8zje7lL5DSUMx6VgbOoVK3cK4zpKsiLfOgnWU0AKQWohaNCDoNe3JxZl+pINUy4sSDq/dDaDOC4wSn3p4zKD/ryJoftkzEHTQFy9HC8epgU1s3xXFCN3d9u2KblWnCCiCc=
+env:
+  global:
+  - DOCKER_COMPOSE_VERSION=1.6.2
+  - DATABASE_PORT=27018
+  - secure: niRoMA4VJzpaAaeTNxKN66E9RsWiRCBxcLkYccfRxVMc2y8VWpU3T2BAxmp2gf8dQEWBnT+eZ53okEmlr7qIc41n7m/sDP+8Id+5YwlD57FlEe5Tb4Dma3ESO3f3YvEcCxHqab4VfU4er6sy5M9E6sCknlGTbXDBnuwzj1V8H2eXo8Nf+zFYr4fBnf51KSw7E0RfpERvYremxrMQGFl9IrYtNH4iRxrA/Gj2zc0AvfztK4vjEYN4DYXJ+5j7eMNo970DxsRR82o8FPhDQiv+kHFwtQ3CXEr+vJ1xnaY/MXNic0W7fvt5eo+asUOQ7W6/aCKkmEqjBznmOjuGtrgluASZstS/OD3hV2nRQQhvsUZVu/FWyi4NHnlFp5EWH5bXyKehIaRGPYMiMbaN00u+O43k3PAGbPNh4XxoWrowjArV+On53KGse98LhZ8aexBRw2qVs3/ZrmPXYjBNjGomAbOdiOLyxZmxTz/PUJrRz7hk5E4wni0avb7F2s/1yqQHztghMhaEYV9+o22X3mdHXIibue0tfHwuY3Vi5v7RVB7ZtDnt1jJ+Gt5wUjHxOP0628mx1AwbPMvSqICTbtAo82GFQ3Hk8mJjMDsfjsYxsHRNXOngrkSMae3KGbToY2goj4uctl9bR2JfJfLJq1RTBaj8UdMwuwSRKG9Ckn7Ksn8=
+  - secure: JQNxr47y9aHbZsUTO9bDX0gc3Bg4eIvmazJai6SbzTZnKAUjIYrsSB6jaJBtjwTCYEPcB/vkZZeKVBYc/u1ZMkaMhowlrd89ROCOmkxwJBZmRpN352hz4/FP9yxW1v+VJ8x3w9IAHe9ratuoCRjExYEQCdDVt0VnyIjH8EI9hz3jFzIXROQyFwY7cCoFpyZTeKc7p9/Weq91V9nWck5J7xe1Mcgq+Q7GK0iR2Kk1iwRuoXdewdCwn5zCQfM7t8TVK2SF+BHYLQZZSqIjMjfBmFLdDriVZTn9/OZB+3lwacN1bcfZULlOe+4z7yE/y/449+JX7lTxPAf4CUzNrcwE7HbWn2ZTzc2T4KSPn+q0BvZkmfxjpAxN1x+BMLS5VBmtmHw8SAfo45CR/c4BtuSeFTjV3l2ZzyOCP4VVnuF+3/0RC4M+nhzmHPXInYkOd587dkzjGvjUSr0qPuiamsyWsOIX/lz8rJRP+WrInhs4HHUZIAh26ndvsjnTzC/toXIsUPxJDTXTHaF92MmoQfcmSRX3CqdMFaMP3kLxlOJT7Tfl2BTVX0yuQHdigbw7NohiuMxTxVzsKojFOcelr84qlZwomkRF/MhL9aCqy/bCQNXcjBrL9x7LEr8PGpT3Y2brixUUhYlkQkwssM3kX7qDNt71BCbiYZNTx7GIA0WAOx4=
+  - secure: OQ5nCq5T1R90/SbQGAOWmd8J7SXKB7azfZUoqzjutoQf1n3XaGJHoXoLqBLvWLfLDqLr+t6GR80RDSDjmUJJu1qu7hW1K3b1wD+04wS7U/3G3CxF36pEnPCZpWL6tKco+WaP1uDnxtbcy1Whev5I/fqzF5vk6uaojx3wnHi+pE9kkFQoa1JwIwK5vZUu2UDuO0QNOT512xs+4LHcizF0RK2kygHxt+r1nNDaUE0kFse2sIgibY2BSXCs83x/4whFxXEWabLI8NEAMdBfYH7EcwfS/nNvrldguK7g3C+ILrMAcgTsPJXrnRBRD0SxIDcNtMBjw633vWrKhVH55M/3EZzyiBdytJCJ9muuCShrxGq39EJoY9KfNWLAK/NyeML952WPsrjxyjKdvCr3C8jBNmw9jPXjJy/JHZz0EOzYKnCgopSSf4ukuyBsBL9K3FslBIVXNKLXG0/tb97+vAK7Qc3jOdrlLsIlCTMtkvXEk4FlwOJeIeN6OMPFjqxrBaG7D2Q9th3hWZ+fe7201whT50jSXGPkzUeT9ir/HkTdFvJBhCvaz0h9xpAwNbd1Stt7eAwPxRkPuxCJyqq5NRiGB2cPGP88yQO/6wBUekMhLATI9wDBPLGi20WCDr4WQ3o7KN/srus5agqY9HMKC2GtrsYP2nKfdi2Mxpn9dREairs=

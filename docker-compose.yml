@@ -1,0 +1,12 @@
+kong-companion:
+  image: slidewiki/kong-companion:latest-dev
+  restart: on-failure:5
+  expose:
+    - "80"
+    - "443"
+  external_links:
+    - mongodb
+    #- kong
+  environment:
+    - LETSENCRYPT_EMAIL=admin@slidewiki.org
+    - KONG_ADMIN_URL=http://kong:8001
