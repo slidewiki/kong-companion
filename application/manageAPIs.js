@@ -79,7 +79,7 @@ kongAPI.listAPIs() //NOTE dont forget that entry could have routes as attribute
     console.log('Found '+obsoleteAPIs.length+' obsolete APIs');
 
     obsoleteAPIs.forEach((api) => {
-      promises.push(kongAPI.deleteUpstreamHost(api.id));
+      promises.push(kongAPI.deleteUpstreamHost(api.route.id, api.service.id));
     });
     return Promise.all(promises);
   })
